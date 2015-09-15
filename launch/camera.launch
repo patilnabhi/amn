@@ -7,7 +7,12 @@
     <param name="camera_frame_id" value="usb_cam" />
     <param name="io_method" value="mmap"/>
   </node>
+<<<<<<< HEAD:launch/usb_cam.launch
     <remap from="image" to="/usb_cam/image_raw"/>
     <param name="autosize" value="true" />
   </node>
+=======
+  
+  
+>>>>>>> 19c9f3da3973feb45a0a9e2075afac815b1806b2:launch/camera.launch
 </launch>
