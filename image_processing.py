@@ -5,6 +5,7 @@ roslib.load_manifest('ball_tracking')
 import sys
 import rospy
 import cv2
+from std_msgs.msg import String
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 
@@ -15,7 +16,7 @@ class image_converter:
 
         cv2.namedWindow("Image window", 1)
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("image_topic",Image,self.callback)
+        self.image_sub = rospy.Subscriber("image_raw",Image,self.callback)
 
     def callback(self,data):
         try:
