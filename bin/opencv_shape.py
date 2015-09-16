@@ -14,7 +14,7 @@ import argparse
 class image_converter:
 
   def __init__(self):
-    # rospy.init_node('image_converter')
+    rospy.init_node('image_converter')
 
     self.image_pub = rospy.Publisher("image_topic_2",Image,queue_size=10)
 
@@ -64,7 +64,7 @@ class image_converter:
       print e
 
 def main(args):
-  rospy.init_node('image_converter', anonymous=True)
+  # rospy.init_node('image_converter', anonymous=True)
   ic = image_converter()
   
   try:
