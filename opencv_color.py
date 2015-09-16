@@ -42,7 +42,7 @@ class image_converter:
     res = cv2.bitwise_and(cv_image,cv_image, mask= mask)
 
     cv2.imshow("Image window", cv_image)
-    cv2.imshow('mask',mask)
+    #cv2.imshow('mask',mask)
     cv2.imshow('res',res)
     cv2.waitKey(3)
 
