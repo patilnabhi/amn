@@ -27,23 +27,48 @@ class image_converter:
       print e
 
     (rows,cols,channels) = cv_image.shape
-    #if cols > 60 and rows > 60 :
-    #  cv2.circle(cv_image, (50,50), 10, 255)
     
+    # convert from RGB to HSV
     hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
 
-    upper_red = np.array([6, 255, 245],np.uint8)
+    # define upper nad lower thresholds for color value in HSV
+    upper_red = np.array([7, 255, 245],np.uint8)
     lower_red = np.array([0, 90, 80],np.uint8)
-    #hsv_lower_red = cv2.cvtColor(lower_red,cv2.COLOR_BGR2HSV)
-    #hsv_upper_red = cv2.cvtColor(upper_red,cv2.COLOR_BGR2HSV)
 
+    #create image mask using defined thresholds
     mask = cv2.inRange(hsv, lower_red, upper_red)
 
+    #re-color mask to original colors
     res = cv2.bitwise_and(cv_image,cv_image, mask= mask)
 
-    cv2.imshow("Image window", cv_image)
-    #cv2.imshow('mask',mask)
-    cv2.imshow('res',res)
+    #smooth mask
+    res_smoothed = cv2.GaussianBlur(res, (5,5), 8)
+
+    output = res_smoothed.copy()
+
+    # convert smoothed mask to grayscale
+    gray = cv2.cvtColor(res_smoothed, cv2.COLOR_BGR2GRAY)
+
+
+    # detect circles in the image
+    circles = cv2.HoughCircles(gray, cv2.cv.CV_HOUGH_GRADIENT, 2, 500)
+ 
+    # ensure at least some circles were found
+    if circles is not None:
+      # convert the (x, y) coordinates and radius of the circles to integers
+      circles = np.round(circles[0, :]).astype("int")
+ 
+    # loop over the (x, y) coordinates and radius of the circles
+      for (x, y, r) in circles:
+        # draw the circle in the output image, then draw a rectangle
+        # corresponding to the center of the circle
+        cv2.circle(output, (x, y), r, (0, 255, 0), 4)
+        cv2.rectangle(output, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+
+    cv2.imshow("Image window", np.hstack([cv_image, output]))
+    # cv2.imshow('mask',mask)
+    # cv2.imshow('res',res)
+    # cv2.imshow('output',output)
     cv2.waitKey(3)
 
     try:
