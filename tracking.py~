@@ -66,10 +66,7 @@ class image_converter:
         cv2.circle(output, (x, y), r, (0, 255, 0), 4)
         cv2.rectangle(output, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
         print(x,y)
-        trk = track(x,y)
-        ctl = control(trk)
 
-    #display video feed
     cv2.imshow("Image window", np.hstack([cv_image, output]))
     # cv2.imshow('mask',mask)
     # cv2.imshow('res',res)
@@ -81,23 +78,43 @@ class image_converter:
     except CvBridgeError, e:
       print e
 
-def track(x,y):
+def control():
 
-    if x > 340 || x < 300:
-      pan = pan + (x-320)
+    ser = serial.Serial('/dev/ttyACM0')
+    
 
-    if y > 240 || y < 240:
-      tilt = tilt + (y-240)
+    paninput = int(raw_input("enter pan value> "))
+    tiltinput = int(raw_input("enter tilt value> "))
 
-return(pan,tilt)
+    pancom = paninput*4 & 0x7f
+    pancom2 = (paninput*4 >> 7) & 0x7f
 
-def control(pan_input,tilt_input):
+    tiltcom = tiltinput*4 & 0x7f
+    tiltcom2 = (tiltinput*4 >>7) & 0x7f
 
-    pancom = pan_input*4 & 0x7f
-    pancom2 = (pan_input*4 >> 7) & 0x7f
+    #print pancom, pancom2
+    #print tiltcom, tiltcom2
 
-    tiltcom = tilt_input*4 & 0x7f
-    tiltcom2 = (tilt_input*4 >>7) & 0x7f
+    panpos = bytearray([132,1,pancom,pancom2])
+    tiltpos = bytearray([132,0,tiltcom,tiltcom2])
+
+    ser.write(panpos)
+    ser.write(tiltpos)
+
+control()
+def control():
+
+    ser = serial.Serial('/dev/ttyACM0')
+    
+
+    paninput = int(raw_input("enter pan value> "))
+    tiltinput = int(raw_input("enter tilt value> "))
+
+    pancom = paninput*4 & 0x7f
+    pancom2 = (paninput*4 >> 7) & 0x7f
+
+    tiltcom = tiltinput*4 & 0x7f
+    tiltcom2 = (tiltinput*4 >>7) & 0x7f
 
     #print pancom, pancom2
     #print tiltcom, tiltcom2
@@ -110,12 +127,8 @@ def control(pan_input,tilt_input):
 
 control()
 
+
 def main(args):
-
-  ser = serial.Serial('/dev/ttyACM0')
-  pan = 1500
-  tilt = 1500
-
   rospy.init_node('image_converter', anonymous=True)
   ic = image_converter()
   
