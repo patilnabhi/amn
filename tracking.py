@@ -16,6 +16,7 @@ class image_converter:
     # rospy.init_node('image_converter')
 
     self.image_pub = rospy.Publisher("image_topic_2",Image,queue_size=10)
+    self.circle_pub = rospy.Publisher("centers", List, queue_size = 10)
 
     cv2.namedWindow("Image window", 1)
     self.bridge = CvBridge()
@@ -33,44 +34,48 @@ class image_converter:
     hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
 
     # define upper nad lower thresholds for color value in HSV
-    upper_red = np.array([7, 255, 245],np.uint8)
+    upper_red = np.array([9, 255, 245],np.uint8)
     lower_red = np.array([0, 90, 80],np.uint8)
 
     #create image mask using defined thresholds
     mask = cv2.inRange(hsv, lower_red, upper_red)
 
-    #re-color mask to original colors
+    mask = cv2.erode(mask, None, iterations=2)
+    mask = cv2.dilate(mask, None, iterations=2)
+
     res = cv2.bitwise_and(cv_image,cv_image, mask= mask)
 
-    #smooth mask
-    res_smoothed = cv2.GaussianBlur(res, (5,5), 8)
-
-    output = res_smoothed.copy()
-
-    # convert smoothed mask to grayscale
-    gray = cv2.cvtColor(res_smoothed, cv2.COLOR_BGR2GRAY)
-
-
-    # detect circles in the image
-    circles = cv2.HoughCircles(gray, cv2.cv.CV_HOUGH_GRADIENT, 2, 500,param1=100, param2=50,minRadius=20,maxRadius=1000)
+    # (x, y) center of the ball
+    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)[-2]
+    center = None
  
-    # ensure at least some circles were found
-    if circles is not None:
-      # convert the (x, y) coordinates and radius of the circles to integers
-      circles = np.round(circles[0, :]).astype("int")
+    # only proceed if at least one contour was found
+    if len(cnts) > 0:
+      # find the largest contour in the mask, then use
+      # it to compute the minimum enclosing circle and
+      # centroid
+      c = max(cnts, key=cv2.contourArea)
+      ((x, y), radius) = cv2.minEnclosingCircle(c)
+      M = cv2.moments(c)
+      center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
  
-    # loop over the (x, y) coordinates and radius of the circles
-      for (x, y, r) in circles:
-        # draw the circle in the output image, then draw a rectangle
-        # corresponding to the center of the circle
-        cv2.circle(output, (x, y), r, (0, 255, 0), 4)
-        cv2.rectangle(output, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
-        print(x,y)
-        trk = track(x,y)
-        ctl = control(trk)
+      # only proceed if the radius meets a minimum size
+      if radius > 20:
+        # draw the circle and centroid on the frame,
+        # then update the list of tracked points
+        cv2.circle(cv_image, (int(x), int(y)), int(radius),
+          (0, 255, 255), 2)
+        cv2.circle(cv_image, center, 5, (0, 0, 255), -1)
 
+      print(x,y)
+
+      x_int = int(x)
+      y_int = int(y)
+      centers = [x_int, y_int]
+      
+    trk = track(x_int,y_int)
     #display video feed
-    cv2.imshow("Image window", np.hstack([cv_image, output]))
+    cv2.imshow("Image window", np.hstack([cv_image,res]))
     # cv2.imshow('mask',mask)
     # cv2.imshow('res',res)
     # cv2.imshow('output',output)
@@ -78,47 +83,19 @@ class image_converter:
 
     try:
       self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
+      self.circle_pub.publish(centers)
     except CvBridgeError, e:
       print e
 
-def track(x,y):
 
-    if x > 340 || x < 300:
-      pan = pan + (x-320)
-
-    if y > 240 || y < 240:
-      tilt = tilt + (y-240)
-
-return(pan,tilt)
-
-def control(pan_input,tilt_input):
-
-    pancom = pan_input*4 & 0x7f
-    pancom2 = (pan_input*4 >> 7) & 0x7f
-
-    tiltcom = tilt_input*4 & 0x7f
-    tiltcom2 = (tilt_input*4 >>7) & 0x7f
-
-    #print pancom, pancom2
-    #print tiltcom, tiltcom2
-
-    panpos = bytearray([132,1,pancom,pancom2])
-    tiltpos = bytearray([132,0,tiltcom,tiltcom2])
-
-    ser.write(panpos)
-    ser.write(tiltpos)
-
-control()
 
 def main(args):
-
-  ser = serial.Serial('/dev/ttyACM0')
-  pan = 1500
-  tilt = 1500
 
   rospy.init_node('image_converter', anonymous=True)
   ic = image_converter()
   
+
+
   try:
     rospy.spin()
   except KeyboardInterrupt:
