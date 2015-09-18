@@ -8,6 +8,9 @@ import numpy as np
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
+import serial
+
+ser = serial.Serial(port='/dev/ttyACM1',baudrate=9600,timeout=0)
 
 class image_converter:
 
@@ -56,16 +59,34 @@ class image_converter:
       ((x, y), radius) = cv2.minEnclosingCircle(c)
       M = cv2.moments(c)
       center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
- 
+
+      x_pos = int(x) + 900
+      print x_pos
+      y_pos = int(y)
+
+      target = 132
+      channel_x = 0
+      channel_y = 1
+
+      tilt_x = bytearray([target, channel_x, ((y_pos*4) & 0x7f), (((y_pos*4) >> 7) & 0x7f)])
+      tilt_y = bytearray([target, channel_y, ((x_pos*4) & 0x7f), (((x_pos*4) >> 7) & 0x7f)])
+
+      # print tilt_x
+
+      ser.write(tilt_y)
+      # ser.write(tilt_x)
+
+      ser.close()
+
       # only proceed if the radius meets a minimum size
-      if radius > 20:
+      if radius > 10:
         # draw the circle and centroid on the frame,
         # then update the list of tracked points
         cv2.circle(cv_image, (int(x), int(y)), int(radius),
           (0, 255, 255), 2)
         cv2.circle(cv_image, center, 5, (0, 0, 255), -1)
 
-    cv2.imshow("Image window", cv_image))
+    cv2.imshow("Image window", cv_image)
     # cv2.imshow('mask',mask)
     # cv2.imshow('res',res)
     # cv2.imshow('output',output)

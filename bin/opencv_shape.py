@@ -35,7 +35,7 @@ class image_converter:
     # image = cv2.imread(usb_cam)
     output = cv_image.copy()
     gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
-
+    
     # detect circles in the image
     circles = cv2.HoughCircles(gray, cv2.cv.CV_HOUGH_GRADIENT, 1.2, 100)
  

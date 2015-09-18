@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import roslib
+import serial
 roslib.load_manifest('ball_tracking')
 import sys
 import rospy
@@ -32,7 +33,7 @@ class image_converter:
     
     hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
 
-    upper_red = np.array([6, 255, 245],np.uint8)
+    upper_red = np.array([9, 255, 245],np.uint8)
     lower_red = np.array([0, 90, 80],np.uint8)
     #hsv_lower_red = cv2.cvtColor(lower_red,cv2.COLOR_BGR2HSV)
     #hsv_upper_red = cv2.cvtColor(upper_red,cv2.COLOR_BGR2HSV)
@@ -43,21 +44,23 @@ class image_converter:
 
     output = res.copy()
     gray = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
+    gray = cv2.GaussianBlur(gray, (9, 9), 2)
 
     # detect circles in the image
-    circles = cv2.HoughCircles(gray, cv2.cv.CV_HOUGH_GRADIENT, 1.2, 100)
+    circles = cv2.HoughCircles(gray, cv2.cv.CV_HOUGH_GRADIENT, 3, 1000)
  
     # ensure at least some circles were found
     if circles is not None:
       # convert the (x, y) coordinates and radius of the circles to integers
       circles = np.round(circles[0, :]).astype("int")
- 
-    # loop over the (x, y) coordinates and radius of the circles
+
+      # loop over the (x, y) coordinates and radius of the circles
       for (x, y, r) in circles:
         # draw the circle in the output image, then draw a rectangle
         # corresponding to the center of the circle
         cv2.circle(output, (x, y), r, (0, 255, 0), 4)
         cv2.rectangle(output, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+        return x, y
 
     cv2.imshow("Image window", np.hstack([cv_image, res, output]))
     # cv2.imshow('mask',mask)
@@ -73,6 +76,7 @@ class image_converter:
 def main(args):
   rospy.init_node('image_converter', anonymous=True)
   ic = image_converter()
+  
   
   try:
     rospy.spin()
