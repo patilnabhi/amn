@@ -12,10 +12,7 @@ ser = serial.Serial('/dev/ttyACM0')
 
 class image_converter:
     def __init__(self):
-        # rospy.init_node('image_converter')
         self.image_pub = rospy.Publisher("image_topic_2",Image,queue_size=10)
-        #self.circle_pub = rospy.Publisher("centers", String, queue_size = 10)
-
         cv2.namedWindow("Image window", 1)
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/usb_cam/image_raw",Image,self.callback)
@@ -65,32 +62,35 @@ class image_converter:
                            (0, 255, 255), 2)
                 cv2.circle(cv_image, center, 5, (0, 0, 255), -1)
 
+            K = 1
             x_int = int(x)
             y_int = int(y)
+
             print(x_int,y_int)
-            
-            panx = x_int + 900
-            tilty = 1000
+
+            cen = 1500
+            c_x = x_int - (640/2)
+            c_y = (-1*y_int) + (480/2)
+
+            panx_d = K * (c_x)
+            tilty_d = (0.8*K) * (c_y)
+
+            panx = int(panx_d + cen)
+            tilty = int(tilty_d + cen)
 
             if panx and tilty:
                 servo(panx,tilty)
       
         #display video feed
         cv2.imshow("Image window", np.hstack([cv_image,res]))
-        # cv2.imshow('mask',mask)
-        # cv2.imshow('res',res)
-        # cv2.imshow('output',output)
         cv2.waitKey(3)
         try:
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
-            #self.circle_pub.publish(centers)
         except CvBridgeError, e:
             print e
 
 def servo(pan,tilt):
-    print "servo called!"
     
-
     pancom = pan*4 & 0x7f
     pancom2 = (pan*4 >> 7) & 0x7f
 
@@ -99,13 +99,9 @@ def servo(pan,tilt):
 
     panpos = bytearray([132,1,pancom,pancom2])
     tiltpos = bytearray([132,0,tiltcom,tiltcom2])
-
-    print(panpos)
     
-    #ser.open()
     ser.write(panpos)
     ser.write(tiltpos)
-    #ser.close()
 
 def main(args):
 
