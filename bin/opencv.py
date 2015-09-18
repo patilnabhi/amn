@@ -4,6 +4,7 @@ roslib.load_manifest('ball_tracking')
 import sys
 import rospy
 import cv2
+import numpy as np
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
@@ -26,10 +27,23 @@ class image_converter:
       print e
 
     (rows,cols,channels) = cv_image.shape
-    if cols > 60 and rows > 60 :
-      cv2.circle(cv_image, (50,50), 10, 255)
+    #if cols > 60 and rows > 60 :
+    #  cv2.circle(cv_image, (50,50), 10, 255)
+    
+    hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
+
+    upper_red = np.array([6, 255, 245],np.uint8)
+    lower_red = np.array([0, 90, 80],np.uint8)
+    #hsv_lower_red = cv2.cvtColor(lower_red,cv2.COLOR_BGR2HSV)
+    #hsv_upper_red = cv2.cvtColor(upper_red,cv2.COLOR_BGR2HSV)
+
+    mask = cv2.inRange(hsv, lower_red, upper_red)
+
+    res = cv2.bitwise_and(cv_image,cv_image, mask= mask)
 
     cv2.imshow("Image window", cv_image)
+    cv2.imshow('mask',mask)
+    cv2.imshow('res',res)
     cv2.waitKey(3)
 
     try:
